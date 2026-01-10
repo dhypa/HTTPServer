@@ -1,0 +1,15 @@
+C:\projects\HTTPServer\HTTPServer\obj\Debug\net10.0\HTTPServer.GeneratedMSBuildEditorConfig.editorconfig
+C:\projects\HTTPServer\HTTPServer\obj\Debug\net10.0\HTTPServer.AssemblyInfoInputs.cache
+C:\projects\HTTPServer\HTTPServer\obj\Debug\net10.0\HTTPServer.AssemblyInfo.cs
+C:\projects\HTTPServer\HTTPServer\obj\Debug\net10.0\HTTPServer.csproj.CoreCompileInputs.cache
+C:\projects\HTTPServer\HTTPServer\bin\Debug\net10.0\HTTPServer.exe
+C:\projects\HTTPServer\HTTPServer\bin\Debug\net10.0\HTTPServer.deps.json
+C:\projects\HTTPServer\HTTPServer\bin\Debug\net10.0\HTTPServer.runtimeconfig.json
+C:\projects\HTTPServer\HTTPServer\bin\Debug\net10.0\HTTPServer.dll
+C:\projects\HTTPServer\HTTPServer\bin\Debug\net10.0\HTTPServer.pdb
+C:\projects\HTTPServer\HTTPServer\obj\Debug\net10.0\HTTPServer.dll
+C:\projects\HTTPServer\HTTPServer\obj\Debug\net10.0\refint\HTTPServer.dll
+C:\projects\HTTPServer\HTTPServer\obj\Debug\net10.0\HTTPServer.pdb
+C:\projects\HTTPServer\HTTPServer\obj\Debug\net10.0\HTTPServer.genruntimeconfig.cache
+C:\projects\HTTPServer\HTTPServer\obj\Debug\net10.0\ref\HTTPServer.dll
+C:\projects\HTTPServer\HTTPServer\bin\Debug\net10.0\message.txt
