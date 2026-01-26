@@ -1,1 +1,8 @@
 .vs/
+HTTPServer/obj/
+HTTPServer/bin/
+goHttp/
+HTTPServer/HTTPServer/obj/
+HTTPServer.Test/bin/
+HTTPServer.Test/obj/
+

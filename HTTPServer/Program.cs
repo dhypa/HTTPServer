@@ -1,50 +1,25 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Channels;
 
 namespace HTTPServer;
 
 internal class Program
 {
     static UTF8Encoding encoder = new();
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
         var path = Path.Combine(Environment.CurrentDirectory, "message.txt");
-
-        Span<byte> buffer = stackalloc byte[8];
         using (FileStream fs = new(path, FileMode.Open, FileAccess.Read, FileShare.None))
         {
-            int bytesRead;
-            ReadOnlySpan<byte> currStr = null;
+            var reader = Reader.GetLinesChannel(fs);
 
-            while ((bytesRead = fs.Read(buffer)) > 0)
+            await foreach (var line in reader.ReadAllAsync())
             {
-                PrintChunk(buffer, currStr);
+                Console.Write("read: {0}\n", encoder.GetString(line));
             }
         }
     }
-
-    static void PrintChunk(ReadOnlySpan<byte> value, ReadOnlySpan<byte> currStr)
-    {
-        ReadOnlySpan<byte> last = default;
-
-        var parts = value.Split((byte)('\n'));
-
-        foreach(var part in parts)
-        {
-            Console.Write("read: {0}{1}\n", encoder.GetString(currStr), encoder.GetString(value[part.Start .. part.End]));
-            currStr = null;
-            last = value[part.Start..part.End];
-        }
-        currStr = last;
-    }
-
-    //public static ReadOnlySpan<T> Concat<T>(this ReadOnlySpan<T> span0, ReadOnlySpan<T> span1)  
-    //{
-    //    var dest = new T[span0.Length + span1.Length].AsSpan();
-
-    //    span0.CopyTo(dest);
-    //    span1.CopyTo(dest.Slice(span0.Length));
-    //    return dest;
-    //}
 }
