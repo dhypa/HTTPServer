@@ -22,7 +22,7 @@ public class TcpListener
         using TcpClient handler = await listener.AcceptTcpClientAsync();
         await using NetworkStream stream = handler.GetStream();
 
-        var reader = Reader.GetLinesChannel(stream);
+        var reader = Reader_Channel.GetLinesChannel(stream);
 
         await foreach (var line in reader.ReadAllAsync())
         {

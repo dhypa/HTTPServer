@@ -2,7 +2,7 @@
 
 namespace HTTPServer.Test;
 
-public class Request_Test
+public class Request_Test_Channel
 {
     [Fact]
     public async Task Get_Request_Line()
@@ -10,12 +10,12 @@ public class Request_Test
         string request = "GET / HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n";
         var ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(request));
         ms.Position = 0;
-        var channelReader = Reader.GetLinesChannel(ms);
+        var channelReader = Reader_Channel.GetLinesChannel(ms);
 
-        Request? resultNullable = await Request.FromStringAsync(channelReader);
+        Http1Request? resultNullable = await Http1Request.FromStringAsync(channelReader);
 
         Assert.NotNull(resultNullable);
-        Request result = resultNullable!;
+        Http1Request result = resultNullable!;
 
         Assert.NotNull(result.RequestLine);
         Assert.NotNull(result.RequestLine.HttpVersion);
@@ -26,11 +26,4 @@ public class Request_Test
         Assert.Equal("/", result.RequestLine.RequestTarget);
         Assert.Equal(HttpMethod.GET, result.RequestLine.Method);
     }
-
-    [Fact]
-    public async Task Get_Request_Line_With_Path() {
-    
-    
-    }
-
 }

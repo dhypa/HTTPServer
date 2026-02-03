@@ -4,7 +4,7 @@ using System.Threading.Channels;
 
 namespace HTTPServer.Archive.tcplistener;
 
-public static class Reader
+public static class Reader_Channel
 {
     static UTF8Encoding encoder = new();
     public static ChannelReader<byte[]> GetLinesChannel(Stream s)
