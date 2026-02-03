@@ -4,13 +4,13 @@ using System.Threading.Channels;
 
 namespace HTTPServer;
 
-public class Request
+public class Http1Request
 {
-    public RequestLine RequestLine { get; set; }
-    public Dictionary<string, string> Headers { get; }
+    public Head Head { get; set; }
     public byte[]? Body;
+    public Dictionary<string, string> Headers => Head.Headers;
 
-    public static async Task<Request> FromStringAsync(ChannelReader<byte[]> reader, CancellationToken ct = default)
+    public static async Task<Http1Request> FromStringAsync(ChannelReader<byte[]> reader, CancellationToken ct = default)
     {
         var requestLine = await ReadLineAsync(reader, ct);
         if(requestLine == null)
@@ -30,9 +30,9 @@ public class Request
             throw new FormatException($"Bad request line: '{requestLineString}' ");
         }
 
-        var request = new Request()
+        var request = new Http1Request()
         {
-            RequestLine = new RequestLine()
+            RequestLine = new Head()
             {
                 Method = (HttpMethod)parsedHttpMethod!,
                 HttpVersion = parts[2],
@@ -101,11 +101,12 @@ public class Request
 
     // {"flavor":"dark mode"}
 }
-public class RequestLine
+public class Head
 {
     public HttpMethod Method { get; set; }
     public string RequestTarget { get; set; }
     public string HttpVersion { get; set; }
+    public Dictionary<string, string> Headers { get; set; } = new();
 }
 
 public enum HttpMethod
@@ -127,5 +128,11 @@ public static class HttpMethodUtils
         }
         httpMethod = null;
         return false;
+    }
+
+    public static bool TryParseHttpMethodSpan(ref ReadOnlySpan<byte> candidate)
+    {
+
+
     }
 }
