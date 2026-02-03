@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO.Pipelines;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace HTTPServer;
@@ -17,6 +18,7 @@ public class Http1Parser
 
         // get body
 
+        throw new NotImplementedException();
     }
 
     // Take in reader
@@ -101,7 +103,7 @@ public class Http1Parser
 
         // parse headers
 
-        var headers = new Dictionary<string, string>(12, StringComparer.OrdinalIgnoreCase);
+        var headers = new Dictionary<byte[], byte[]>(12);
 
         while (TryReadLine(ref reader, out ReadOnlySpan<byte> line))
         {
@@ -121,14 +123,14 @@ public class Http1Parser
 
             // TryAdd ensures only the first key is kept
             // if my producers are assholes and send duplicate headers 
-            // this is the correct behavior per RFC 7230 Section 3.2.2
+            // this is the correct behavior per RFC 7230 Section 3.2.6
             headers.TryAdd(
-                Encoding.ASCII.GetString(nameSpan),
-                Encoding.ASCII.GetString(valueSpan)
+                nameSpan.ToArray(),
+                valueSpan.ToArray()
             );
         }
 
-
+        throw new NotImplementedException();
     }
 
     private static bool TryReadLine(ref SequenceReader<byte> reader, out ReadOnlySpan<byte> line)
@@ -141,18 +143,20 @@ public class Http1Parser
         return false;
     }
 
-    private static void ReadRequestLine(ReadOnlySpan<byte> requestLine, out ReadOnlySpan<byte> method, out ReadOnlySpan<byte> target, out ReadOnlySpan<byte> httpVersion)
+    internal static void ReadRequestLine(ReadOnlySpan<byte> requestLine, out ReadOnlySpan<byte> method, out ReadOnlySpan<byte> target, out ReadOnlySpan<byte> httpVersion)
     {
         int methodPosition = requestLine.IndexOf(CharsAsBytes.Space);
         if (methodPosition == -1)
             throw new FormatException("Invalid HTTP request line: Malformed method");
+        method = requestLine.Slice(0, methodPosition);
 
         int targetPosition = requestLine.Slice(methodPosition + 1).IndexOf(CharsAsBytes.Space);
         if (targetPosition == -1)
             throw new FormatException("Invalid HTTP request line: Malformed target");
 
-        method = requestLine.Slice(0, methodPosition);
+        
         target = requestLine.Slice(methodPosition + 1, targetPosition);
-        httpVersion = requestLine.Slice(targetPosition + 1);
+        httpVersion = requestLine.Slice(methodPosition + targetPosition + 2);
+
     }
 }

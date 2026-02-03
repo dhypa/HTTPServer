@@ -1,4 +1,6 @@
 ﻿using HTTPServer.Archive.tcplistener;
+using System.Buffers;
+using System.Text;
 
 namespace HTTPServer.Test;
 
@@ -17,13 +19,19 @@ public class Request_Test_Channel
         Assert.NotNull(resultNullable);
         Http1Request result = resultNullable!;
 
-        Assert.NotNull(result.RequestLine);
-        Assert.NotNull(result.RequestLine.HttpVersion);
-        Assert.NotNull(result.RequestLine.RequestTarget);
-        Assert.NotNull(result.RequestLine.HttpVersion);
+        Assert.NotNull(result.Head);
+        Assert.NotNull(result.Head.HttpVersion);
+        Assert.NotNull(result.Head.RequestTarget);
+        Assert.NotNull(result.Head.HttpVersion);
 
-        Assert.Equal("HTTP/1.1", result.RequestLine.HttpVersion);
-        Assert.Equal("/", result.RequestLine.RequestTarget);
-        Assert.Equal(HttpMethod.GET, result.RequestLine.Method);
+        Assert.Equal("HTTP/1.1", result.Head.HttpVersion);
+        Assert.Equal("/", result.Head.RequestTarget);
+        Assert.Equal(HttpMethod.GET, result.Head.Method);
+    }
+
+    public void TryMatchCrlfCrlf_Success()
+    {
+
+
     }
 }

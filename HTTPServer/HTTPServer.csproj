@@ -8,9 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+	    
     <None Update="message.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+	
+    <InternalsVisibleTo Include="HTTPServer.Test" />
+
   </ItemGroup>
 
 </Project>

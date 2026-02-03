@@ -8,7 +8,7 @@ public class Http1Request
 {
     public Head Head { get; set; }
     public byte[]? Body;
-    public Dictionary<string, string> Headers => Head.Headers;
+    public Dictionary<byte, byte> Headers => Head.Headers;
 
     public static async Task<Http1Request> FromStringAsync(ChannelReader<byte[]> reader, CancellationToken ct = default)
     {
@@ -32,7 +32,7 @@ public class Http1Request
 
         var request = new Http1Request()
         {
-            RequestLine = new Head()
+            Head = new Head()
             {
                 Method = (HttpMethod)parsedHttpMethod!,
                 HttpVersion = parts[2],
@@ -106,7 +106,7 @@ public class Head
     public HttpMethod Method { get; set; }
     public string RequestTarget { get; set; }
     public string HttpVersion { get; set; }
-    public Dictionary<string, string> Headers { get; set; } = new();
+    public Dictionary<byte, byte> Headers { get; set; } = new();
 }
 
 public enum HttpMethod
@@ -133,6 +133,6 @@ public static class HttpMethodUtils
     public static bool TryParseHttpMethodSpan(ref ReadOnlySpan<byte> candidate)
     {
 
-
+        throw new NotImplementedException();
     }
 }
