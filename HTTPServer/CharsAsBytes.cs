@@ -9,9 +9,10 @@ namespace HTTPServer;
 
 public static class CharsAsBytes
 {
-    public const byte r = (byte)'\r';
-    public const byte n = (byte)'\n';
+    public const byte Cr = (byte)'\r';
+    public const byte Nl = (byte)'\n';
     public const byte Space = (byte)' ';
+    public const byte Colon = (byte)':';
 
     public static readonly byte[] CrlfCrlf = [
         (byte)'\r',
@@ -54,9 +55,10 @@ public static class CharsAsBytes
 
 
     }
+
     public static bool TryMatchCrlfCrlf(ReadOnlySequence<byte> buffer, SequencePosition position)
     {
-        var slice = buffer.Slice(position);
+        var slice = buffer.Slice(position, 4);
 
         if (slice.Length < 4)
         {
@@ -70,7 +72,7 @@ public static class CharsAsBytes
         // fast path
         if (first.Length >= 4)
         {
-            return 
+            return
                 first[0] == term[0] &&
                 first[1] == term[1] &&
                 first[2] == term[2] &&
@@ -81,7 +83,7 @@ public static class CharsAsBytes
         // crosses segment boundary
         var reader = new SequenceReader<byte>(buffer);
 
-        return 
+        return
             reader.TryRead(out var b0) && b0 == term[0] &&
             reader.TryRead(out var b1) && b1 == term[1] &&
             reader.TryRead(out var b2) && b2 == term[2] &&

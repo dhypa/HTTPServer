@@ -6,9 +6,9 @@ namespace HTTPServer;
 
 public class Http1Request
 {
-    public RequestLine RequestLine { get; set; }
-    public Dictionary<string, string> Headers { get; }
+    public Head Head { get; set; }
     public byte[]? Body;
+    public Dictionary<string, string> Headers => Head.Headers;
 
     public static async Task<Http1Request> FromStringAsync(ChannelReader<byte[]> reader, CancellationToken ct = default)
     {
@@ -32,7 +32,7 @@ public class Http1Request
 
         var request = new Http1Request()
         {
-            RequestLine = new RequestLine()
+            RequestLine = new Head()
             {
                 Method = (HttpMethod)parsedHttpMethod!,
                 HttpVersion = parts[2],
@@ -101,11 +101,12 @@ public class Http1Request
 
     // {"flavor":"dark mode"}
 }
-public class RequestLine
+public class Head
 {
     public HttpMethod Method { get; set; }
     public string RequestTarget { get; set; }
     public string HttpVersion { get; set; }
+    public Dictionary<string, string> Headers { get; set; } = new();
 }
 
 public enum HttpMethod

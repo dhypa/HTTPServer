@@ -21,7 +21,7 @@ public class Http1Parser
 
     // Take in reader
     // return pointer to header buffer/span/whatever the fuck
-    private static async Task<(ReadOnlySequence<byte> HeaderBlock, ReadOnlySequence<byte>BodyRemainder)> 
+    private static async Task<(ReadOnlySequence<byte> HeaderBlock, ReadOnlySequence<byte> BodyRemainder)>
         ReadHeaderBlockAsync(PipeReader reader, CancellationToken ct)
     {
         long totalBuffered = 0;
@@ -37,7 +37,7 @@ public class Http1Parser
                 throw new FormatException($"HTTP Header length exceeds limit {MaxHeaderBytes} bytes");
             }
 
-            if(TryFindCrlfCrlf(buffer, out var headerEndPosition))
+            if (TryFindCrlfCrlf(buffer, out var headerEndPosition))
             {
                 var headerBlock = buffer.Slice(0, headerEndPosition);
 
@@ -69,7 +69,7 @@ public class Http1Parser
         {
             // read to next \r
             // don't advance - compare all 4 bytes
-            if(!reader.TryReadTo(out ReadOnlySpan<byte> _, CharsAsBytes.r, false))
+            if (!reader.TryReadTo(out ReadOnlySpan<byte> _, CharsAsBytes.Cr, false))
             {
                 break;
             }
@@ -88,23 +88,71 @@ public class Http1Parser
     }
 
     // Parse header block buffer/span/whatever the fuck
-    private static RequestLine ParseHeaderBlock(ReadOnlySequence<byte> buffer)
+    private static Head ParseHeaderBlock(ReadOnlySequence<byte> buffer)
     {
         var reader = new SequenceReader<byte>(buffer);
 
-        if(reader.TryReadTo(out ReadOnlySpan<byte> methodSpan, CharsAsBytes.Space, false))
+        // parse request line
+        if (!TryReadLine(ref reader, out var requestLineSpan))
         {
-
-
+            throw new FormatException("Invalid HTTP request: Missing request line");
         }
+        ReadRequestLine(requestLineSpan, out var methodSpan, out var targetSpan, out var httpVersionSpan);
+
+        // parse headers
+
+        var headers = new Dictionary<string, string>(12, StringComparer.OrdinalIgnoreCase);
+
+        while (TryReadLine(ref reader, out ReadOnlySpan<byte> line))
+        {
+            if (line.Length == 0)
+            {
+                // we will assume 
+                break;
+            }
+            var seperator = line.IndexOf(CharsAsBytes.Colon);
+            if (seperator is -1)
+            {
+                throw new FormatException("Invalid HTTP header line: Missing colon separator");
+            }
+
+            var nameSpan = line.Slice(0, seperator).Trim(CharsAsBytes.Space);
+            var valueSpan = line.Slice(seperator + 1).Trim(CharsAsBytes.Space);
+
+            // TryAdd ensures only the first key is kept
+            // if my producers are assholes and send duplicate headers 
+            // this is the correct behavior per RFC 7230 Section 3.2.2
+            headers.TryAdd(
+                Encoding.ASCII.GetString(nameSpan),
+                Encoding.ASCII.GetString(valueSpan)
+            );
+        }
+
+
     }
 
     private static bool TryReadLine(ref SequenceReader<byte> reader, out ReadOnlySpan<byte> line)
     {
-        if(reader.TryReadTo(out line, CharsAsBytes.Crlf, false))
+        if (reader.TryReadTo(out line, CharsAsBytes.Crlf, false))
         {
             reader.Advance(2);
+            return true;
         }
+        return false;
+    }
 
+    private static void ReadRequestLine(ReadOnlySpan<byte> requestLine, out ReadOnlySpan<byte> method, out ReadOnlySpan<byte> target, out ReadOnlySpan<byte> httpVersion)
+    {
+        int methodPosition = requestLine.IndexOf(CharsAsBytes.Space);
+        if (methodPosition == -1)
+            throw new FormatException("Invalid HTTP request line: Malformed method");
+
+        int targetPosition = requestLine.Slice(methodPosition + 1).IndexOf(CharsAsBytes.Space);
+        if (targetPosition == -1)
+            throw new FormatException("Invalid HTTP request line: Malformed target");
+
+        method = requestLine.Slice(0, methodPosition);
+        target = requestLine.Slice(methodPosition + 1, targetPosition);
+        httpVersion = requestLine.Slice(targetPosition + 1);
     }
 }
