@@ -8,10 +8,15 @@ using System.Text;
 
 namespace HTTPServer;
 
-public class Http1Parser
+public interface IHttp1Parser
+{
+    public Task<Http1Request> ReadRequestAsync(PipeReader reader, CancellationToken ct = default);
+}
+
+public class Http1Parser: IHttp1Parser
 {
     private const int MaxHeaderBytes = 64 * 1024; // 64KB
-    public static async Task<Http1Request> ReadRequestAsync(PipeReader reader, CancellationToken ct = default)
+    public async Task<Http1Request> ReadRequestAsync(PipeReader reader, CancellationToken ct = default)
     {
         // Read whole header block up to \r\n\r\n
         var (headerSequence, bodySequence) = await ReadHeaderBlockAsync(reader, ct);
@@ -159,6 +164,8 @@ public class Http1Parser
         }
         return false;
     }
+
+    // GET /chungus HTTP1.1
 
     internal static void ReadRequestLine(ReadOnlySpan<byte> requestLine, out ReadOnlySpan<byte> method, out ReadOnlySpan<byte> target, out ReadOnlySpan<byte> httpVersion)
     {

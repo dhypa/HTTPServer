@@ -4,6 +4,7 @@ using System.Text;
 
 namespace HTTPServer.Test.Reader;
 
-internal class ReaHeadersTests
+internal class ReadHeadersTests
 {
+    // 
 }

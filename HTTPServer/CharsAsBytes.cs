@@ -55,7 +55,6 @@ public static class CharsAsBytes
 
 
     }
-
     public static bool TryMatchCrlfCrlf(ReadOnlySequence<byte> buffer, SequencePosition position)
     {
         var slice = buffer.Slice(position);

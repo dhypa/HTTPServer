@@ -26,7 +26,7 @@ public class Request_Test_Channel
 
         Assert.Equal("HTTP/1.1", result.Head.HttpVersion);
         Assert.Equal("/", result.Head.RequestTarget);
-        Assert.Equal(HttpMethod.GET, result.Head.Method);
+        Assert.Equal("GET", result.Head.Method);
     }
 
     public void TryMatchCrlfCrlf_Success()
