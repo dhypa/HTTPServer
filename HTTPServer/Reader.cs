@@ -154,9 +154,12 @@ public class Http1Parser
         if (targetPosition == -1)
             throw new FormatException("Invalid HTTP request line: Malformed target");
 
-        
         target = requestLine.Slice(methodPosition + 1, targetPosition);
         httpVersion = requestLine.Slice(methodPosition + targetPosition + 2);
 
+        if (method.Length == 0 || target.Length == 0 || httpVersion.Length == 0)
+        {
+            throw new FormatException("Malformed request line");
+        }
     }
 }
