@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace HTTPServer;
@@ -70,7 +71,7 @@ public class Http1Parser
         while (!reader.End)
         {
             // read to next \r
-            // don't advance - compare all 4 bytes
+            // if we can't find one, break out so more data can be read
             if (!reader.TryReadTo(out ReadOnlySpan<byte> _, CharsAsBytes.Cr, false))
             {
                 break;
@@ -95,7 +96,7 @@ public class Http1Parser
         var reader = new SequenceReader<byte>(buffer);
 
         // parse request line
-        if (!TryReadLine(ref reader, out var requestLineSpan))
+        if (!TryReadHeaderBlockLine(ref reader, out var requestLineSpan))
         {
             throw new FormatException("Invalid HTTP request: Missing request line");
         }
@@ -103,13 +104,25 @@ public class Http1Parser
 
         // parse headers
 
-        var headers = new Dictionary<byte[], byte[]>(12);
+        var headers = new Dictionary<char[], char[]>(12);
 
-        while (TryReadLine(ref reader, out ReadOnlySpan<byte> line))
+        ReadHeaders(ref reader, headers);
+
+        var head = new Head()
+        {
+
+        };
+
+        throw new NotImplementedException();
+    }
+
+    private static void ReadHeaders(ref SequenceReader<byte> reader, Dictionary<char[], char[]> headers)
+    {
+        while (TryReadHeaderBlockLine(ref reader, out ReadOnlySpan<byte> line))
         {
             if (line.Length == 0)
             {
-                // we will assume 
+                // We will assume that an empty line indicates the end of the header block
                 break;
             }
             var seperator = line.IndexOf(CharsAsBytes.Colon);
@@ -121,19 +134,23 @@ public class Http1Parser
             var nameSpan = line.Slice(0, seperator).Trim(CharsAsBytes.Space);
             var valueSpan = line.Slice(seperator + 1).Trim(CharsAsBytes.Space);
 
+            Span<char> lowerNameSpan = default;
+            Span<char> lowerValueSpan = default;
+
+            MemoryMarshal.Cast<byte, char>(nameSpan).ToLowerInvariant(lowerNameSpan);
+            MemoryMarshal.Cast<byte, char>(valueSpan).ToLowerInvariant(lowerValueSpan);
+
             // TryAdd ensures only the first key is kept
             // if my producers are assholes and send duplicate headers 
             // this is the correct behavior per RFC 7230 Section 3.2.6
             headers.TryAdd(
-                nameSpan.ToArray(),
-                valueSpan.ToArray()
+                lowerNameSpan.ToArray(),
+                lowerValueSpan.ToArray()
             );
         }
-
-        throw new NotImplementedException();
     }
 
-    private static bool TryReadLine(ref SequenceReader<byte> reader, out ReadOnlySpan<byte> line)
+    internal static bool TryReadHeaderBlockLine(ref SequenceReader<byte> reader, out ReadOnlySpan<byte> line)
     {
         if (reader.TryReadTo(out line, CharsAsBytes.Crlf, false))
         {
