@@ -1,84 +1,90 @@
 ﻿using System.Buffers;
 using System.Text;
 using System.Threading.Channels;
+using static HTTPServer.CharsAsBytes;
 
 namespace HTTPServer;
 
 public class Http1Request
 {
-    public Head Head { get; set; }
+    public required Head Head { get; set; }
     public byte[]? Body;
-    public Dictionary<char[], char[]> Headers => Head.Headers;
-
-    public static async Task<Http1Request> FromStringAsync(ChannelReader<byte[]> reader, CancellationToken ct = default)
+    public required Dictionary<byte[], byte[]> Headers
     {
-        var requestLine = await ReadLineAsync(reader, ct);
-        if (requestLine == null)
-        {
-            throw new FormatException("Request line is null");
-        }
-        var requestLineString = Encoding.ASCII.GetString(requestLine);
-
-        var parts = requestLineString.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts.Length != 3)
-        {
-            throw new FormatException($"Bad request line: '{requestLineString}' ");
-        }
-
-        if (!HttpMethodUtils.TryParseString(parts[0], out var parsedHttpMethod))
-        {
-            throw new FormatException($"Bad request line: '{requestLineString}' ");
-        }
-
-        var request = new Http1Request()
-        {
-            Head = new Head()
-            {
-                Method = parsedHttpMethod.ToString(),
-                HttpVersion = parts[2],
-                RequestTarget = parts[1]
-            }
-        };
-
-        Dictionary<string, string> headers = new();
-        while (true)
-        {
-            var lineBytes = await ReadLineAsync(reader, ct);
-            if (lineBytes is null or { Length: 0 })
-            {
-                break;
-            }
-
-            var line = Encoding.ASCII.GetString(lineBytes);
-
-            var colon = line.IndexOf(':');
-            if (colon is -1)
-            {
-                throw new FormatException($"Bad header line: '{line}'");
-            }
-
-            var name = line[..colon].Trim();
-            var value = line[(colon + 1)..].Trim();
-
-            headers[name] = value;
-        }
-
-        ArrayBufferWriter<byte> abw = new(8);
-
-        while (true)
-        {
-            var bytes = await ReadLineAsync(reader, ct);
-            if (bytes is null)
-            {
-                break;
-            }
-            abw.Write(bytes);
-        }
-
-        request.Body = abw.WrittenMemory.ToArray();
-
-        return request;
+        get => Head.Headers;
+        set => Head.Headers = value;
     }
+
+    //public static async Task<Http1Request> FromStringAsync(ChannelReader<byte[]> reader, CancellationToken ct = default)
+    //{
+    //    var requestLine = await ReadLineAsync(reader, ct);
+    //    if (requestLine == null)
+    //    {
+    //        throw new FormatException("Request line is null");
+    //    }
+    //    var requestLineString = Encoding.ASCII.GetString(requestLine);
+
+    //    var parts = requestLineString.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    //    if (parts.Length != 3)
+    //    {
+    //        throw new FormatException($"Bad request line: '{requestLineString}' ");
+    //    }
+
+    //    if (!HttpMethodUtils.TryParseString(parts[0], out var parsedHttpMethod))
+    //    {
+    //        throw new FormatException($"Bad request line: '{requestLineString}' ");
+    //    }
+
+    //    var request = new Http1Request()
+    //    {
+    //        Head = new Head()
+    //        {
+    //            Method = parsedHttpMethod.ToString(),
+    //            HttpVersion = parts[2],
+    //            RequestTarget = parts[1],
+    //        },
+    //        Headers = null
+    //    };
+
+    //    Dictionary<string, string> headers = new();
+    //    while (true)
+    //    {
+    //        var lineBytes = await ReadLineAsync(reader, ct);
+    //        if (lineBytes is null or { Length: 0 })
+    //        {
+    //            break;
+    //        }
+
+    //        var line = Encoding.ASCII.GetString(lineBytes);
+
+    //        var colon = line.IndexOf(':');
+    //        if (colon is -1)
+    //        {
+    //            throw new FormatException($"Bad header line: '{line}'");
+    //        }
+
+    //        var name = line[..colon].Trim();
+    //        var value = line[(colon + 1)..].Trim();
+
+    //        headers[name] = value;
+    //    }
+
+    //    ArrayBufferWriter<byte> abw = new(8);
+
+    //    while (true)
+    //    {
+    //        var bytes = await ReadLineAsync(reader, ct);
+    //        if (bytes is null)
+    //        {
+    //            break;
+    //        }
+    //        abw.Write(bytes);
+    //    }
+
+    //    request.Body = abw.WrittenMemory.ToArray();
+
+    //    return request;
+    //}
     private static async ValueTask<byte[]?> ReadLineAsync(ChannelReader<byte[]> lines, CancellationToken ct)
     {
         if(lines.TryRead(out var line)){
@@ -103,10 +109,10 @@ public class Http1Request
 }
 public class Head
 {
-    public string Method { get; set; }
-    public string RequestTarget { get; set; }
-    public string HttpVersion { get; set; }
-    public Dictionary<char[], char[]> Headers { get; set; } = new();
+    public byte[] Method { get; set; }
+    public byte[] RequestTarget { get; set; }
+    public byte[] HttpVersion { get; set; }
+    public Dictionary<byte[], byte[]> Headers { get; set; } = new(new ByteArrayComparer());
 }
 
 public enum HttpMethod

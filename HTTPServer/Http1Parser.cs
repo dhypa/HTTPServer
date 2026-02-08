@@ -10,13 +10,13 @@ namespace HTTPServer;
 
 public interface IHttp1Parser
 {
-    public Task<Http1Request> ReadRequestAsync(PipeReader reader, CancellationToken ct = default);
+    public static abstract Task<Http1Request> ReadRequestAsync(PipeReader reader, CancellationToken ct = default);
 }
 
 public class Http1Parser: IHttp1Parser
 {
     private const int MaxHeaderBytes = 64 * 1024; // 64KB
-    public async Task<Http1Request> ReadRequestAsync(PipeReader reader, CancellationToken ct = default)
+    public static async Task<Http1Request> ReadRequestAsync(PipeReader reader, CancellationToken ct = default)
     {
         // Read whole header block up to \r\n\r\n
         var (headerSequence, bodySequence) = await ReadHeaderBlockAsync(reader, ct);
@@ -96,7 +96,7 @@ public class Http1Parser: IHttp1Parser
     }
 
     // Parse header block buffer/span/whatever the fuck
-    private static Head ParseHeaderBlock(ReadOnlySequence<byte> buffer)
+    internal static Head ParseHeaderBlock(ReadOnlySequence<byte> buffer)
     {
         var reader = new SequenceReader<byte>(buffer);
 
@@ -109,51 +109,69 @@ public class Http1Parser: IHttp1Parser
 
         // parse headers
 
-        var headers = new Dictionary<char[], char[]>(12);
+        var headers = new Dictionary<byte[], byte[]>(12, new CharsAsBytes.ByteArrayComparer());
 
         ReadHeaders(ref reader, headers);
 
-        var head = new Head()
+        return new Head()
         {
-
+            Headers = headers,
+            HttpVersion = httpVersionSpan.ToArray(),
+            Method = methodSpan.ToArray(),
+            RequestTarget = targetSpan.ToArray()
         };
-
-        throw new NotImplementedException();
     }
 
-    private static void ReadHeaders(ref SequenceReader<byte> reader, Dictionary<char[], char[]> headers)
+    private static readonly byte[] HeaderValueTrimCandidates = [(byte)' ', (byte)'\t'];
+    internal static void ReadHeaders(ref SequenceReader<byte> reader, Dictionary<byte[], byte[]> headers)
     {
         while (TryReadHeaderBlockLine(ref reader, out ReadOnlySpan<byte> line))
         {
             if (line.Length == 0)
-            {
-                // We will assume that an empty line indicates the end of the header block
                 break;
-            }
-            var seperator = line.IndexOf(CharsAsBytes.Colon);
-            if (seperator is -1)
+
+            int sep = line.IndexOf((byte)':');
+            if (sep < 1)
+                throw new FormatException("Invalid header: missing or misplaced colon");
+
+            var nameBytes = line[..sep];
+            var valueBytes = line[(sep + 1)..];
+
+            // Validate header name
+            foreach (byte b in nameBytes)
             {
-                throw new FormatException("Invalid HTTP header line: Missing colon separator");
+                if (!IsTokenChar(b))
+                    throw new FormatException("Invalid header name");
             }
 
-            var nameSpan = line.Slice(0, seperator).Trim(CharsAsBytes.Space);
-            var valueSpan = line.Slice(seperator + 1).Trim(CharsAsBytes.Space);
+            var name = nameBytes.Trim(HeaderValueTrimCandidates).ToArray();
+            for(int i = 0; i < name.Length; i++) {
+                var b = name[i];
+                if('A' <= b && b <= 'Z')
+                {
+                    name[i] += 32;
+                }
+            }
 
-            Span<char> lowerNameSpan = default;
-            Span<char> lowerValueSpan = default;
+            var value = valueBytes.TrimStart(HeaderValueTrimCandidates).ToArray();
 
-            MemoryMarshal.Cast<byte, char>(nameSpan).ToLowerInvariant(lowerNameSpan);
-            MemoryMarshal.Cast<byte, char>(valueSpan).ToLowerInvariant(lowerValueSpan);
-
-            // TryAdd ensures only the first key is kept
-            // if my producers are assholes and send duplicate headers 
-            // this is the correct behavior per RFC 7230 Section 3.2.6
-            headers.TryAdd(
-                lowerNameSpan.ToArray(),
-                lowerValueSpan.ToArray()
-            );
+            if (headers.TryGetValue(name, out var existing))
+            {
+                headers[name] = [..existing, (byte)',', ..value]; // RFC 7230 merge rule
+            }
+            else
+            {
+                headers[name] = value;
+            }
         }
+    }   
+
+    private static bool IsTokenChar(byte b)
+    {
+        // RFC 7230 token definition
+        return b > 32 && b < 127 && "()<>@,;:\\\"/[]?={} ".IndexOf((char)b) == -1;
     }
+
 
     internal static bool TryReadHeaderBlockLine(ref SequenceReader<byte> reader, out ReadOnlySpan<byte> line)
     {

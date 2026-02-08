@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Buffers;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Text;
@@ -87,5 +89,34 @@ public static class CharsAsBytes
             reader.TryRead(out var b1) && b1 == term[1] &&
             reader.TryRead(out var b2) && b2 == term[2] &&
             reader.TryRead(out var b3) && b3 == term[3];
+    }
+
+    public class ByteArrayComparer : IEqualityComparer<byte[]>
+    {
+        public bool Equals(byte[]? x, byte[]? y)
+        {
+            if (ReferenceEquals(x, y)) return true;
+            if (x is null || y is null) return false;
+            if (x.Length != y.Length) return false;
+
+            for (int i = 0; i < x.Length; i++)
+            {
+                if (x[i] != y[i]) return false;
+            }
+            return true;
+        }
+
+        public int GetHashCode([DisallowNull] byte[] obj)
+        {
+            unchecked
+            {
+                int hash = 17;
+                foreach (char c in obj)
+                {
+                    hash = hash * 31 + c.GetHashCode();
+                }
+                return hash;
+            }
+        }
     }
 }
